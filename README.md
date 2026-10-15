@@ -24,6 +24,8 @@ lake exe cache get
 
 `verify.sh` builds the library and prints the axioms of the main theorem ([Verification/Axioms.lean](Verification/Axioms.lean)). `lake exe cache get` downloads prebuilt Mathlib files; without it the first build compiles Mathlib.
 
+The kernel replay, the Comparator check against the statement and their negative controls are recorded in [docs/verification.md](docs/verification.md).
+
 ## Mathematical sources
 
 - D. Ara, *On the homotopy theory of Grothendieck ∞-groupoids*, [arXiv:1206.2941](https://arxiv.org/abs/1206.2941): the form of the conjecture that `Statement` formalizes.
