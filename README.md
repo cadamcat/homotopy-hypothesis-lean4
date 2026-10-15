@@ -6,7 +6,7 @@ A Lean 4 proof of Grothendieck's homotopy hypothesis for coherators, in the form
 
 - **Author:** Yao Xu ([@cadamcat](https://github.com/cadamcat)); see [AUTHORS.md](AUTHORS.md).
 - **Mathematics:** OpenAI, [*The Grothendieck homotopy hypothesis via elementary expansions*](https://github.com/openai/math/blob/1581d4cbdd69a0faf34b2089614fe2a814316a6a/preprints/The-Grothendieck-homotopy-hypothesis-via-elementary-expansions-September-24-2026/paper.pdf) (2026), building on S. Henry's framework.
-- Developed with AI assistance (Claude Code, Codex, Antigravity, OpenCode and Grok CLI); all proofs are verified by the Lean 4 kernel.
+- Developed with AI assistance; all proofs are verified by the Lean 4 kernel.
 
 ## The statement
 

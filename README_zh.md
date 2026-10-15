@@ -6,7 +6,7 @@ Grothendieck 同伦假设（对 coherator，采用 Maltsiniotis 与 Ara 给出�
 
 - **作者：** Yao Xu ([@cadamcat](https://github.com/cadamcat))；见[作者与署名说明](AUTHORS.md)。
 - **数学结果：** OpenAI，[*The Grothendieck homotopy hypothesis via elementary expansions*](https://github.com/openai/math/blob/1581d4cbdd69a0faf34b2089614fe2a814316a6a/preprints/The-Grothendieck-homotopy-hypothesis-via-elementary-expansions-September-24-2026/paper.pdf)（2026），建立在 S. Henry 的框架之上。
-- 本项目在 AI 协助下开发（Claude Code、Codex、Antigravity、OpenCode 和 Grok CLI）；所有证明均由 Lean 4 内核验证。
+- 本项目在 AI 协助下开发；所有证明均由 Lean 4 内核验证。
 
 ## 陈述
 
