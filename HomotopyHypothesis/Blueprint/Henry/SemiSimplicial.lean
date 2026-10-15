@@ -1,0 +1,189 @@
+import HomotopyHypothesis.Blueprint.Henry.CylinderCategory
+import HomotopyHypothesis.Blueprint.Henry.Topology
+/-!
+# Semi-simplicial sets and the cylinder category `C^Δ`
+
+The simplicial anchor of H §5.2 (H:2815–3001):
+
+* the semi-simplicial category (injective order-preserving maps between `[n]`), semi-simplicial
+  sets, the representables `Δ_n`, boundaries `∂Δ_n` and horns `Λ^n_k` (H:2822–2845), the Kan
+  condition, and the geometric realization `‖X‖` of semi-simplicial sets (left Kan extension of the
+  topological simplices);
+* algebraic semi-simplicial Kan complexes: semi-simplicial sets with a chosen filler for every horn
+  `Λ^{n+1}_k ⟶ X` (H:2870–2878; this is the completion of `C^Δ`);
+* free cell attachments, finitely cellular objects, and the cylinder category `C^Δ` of finitely
+  cellular algebraic Kan complexes (H:2868, Def 5.2.4), whose cofibrations are the finite composites
+  of cell attachments and whose weak equivalences form the smallest class making `C^Δ` a
+  pre-cylinder category in which the maps between free simplices induced by face inclusions are
+  weak equivalences (H:2819–2821);
+* standard realizations `C^Δ ⥤ TopCat` (H:2880, Def 5.2.5): cellular realizations sending each
+  free simplex to the topological simplex and the maps between free simplices to the corresponding
+  face maps.
+-/
+
+universe u
+
+open CategoryTheory Limits HomotopicalAlgebra Opposite
+
+namespace HomotopyHypothesis.Henry
+
+/-- The semi-simplicial category: the objects of the simplex category with the injective
+order-preserving maps (H:2817). -/
+abbrev SemiSimplexCategory : Type :=
+  WideSubcategory (MorphismProperty.monomorphisms SimplexCategory)
+
+namespace SemiSimplexCategory
+
+/-- The object `[n]`. -/
+abbrev mk (n : ℕ) : SemiSimplexCategory := ⟨SimplexCategory.mk n⟩
+
+/-- The inclusion into the simplex category. -/
+abbrev incl : SemiSimplexCategory ⥤ SimplexCategory :=
+  wideSubcategoryInclusion _
+
+end SemiSimplexCategory
+
+/-- Semi-simplicial sets. -/
+abbrev SemiSSet : Type (u + 1) := SemiSimplexCategoryᵒᵖ ⥤ Type u
+
+namespace SemiSSet
+
+/-- The semi-simplicial set underlying a simplicial set (forgetting degeneracies). -/
+abbrev ofSSet : SSet.{u} ⥤ SemiSSet.{u} :=
+  (Functor.whiskeringLeft _ _ _).obj SemiSimplexCategory.incl.op
+
+/-- The representable semi-simplicial sets `Δ_n` (H:2826). -/
+abbrev stdSimplex : SemiSimplexCategory ⥤ SemiSSet.{u} := uliftYoneda.{u}
+
+/-- The boundary `∂Δ_n ⊆ Δ_n`: the non-surjective maps (H:2832). -/
+def boundary (n : ℕ) : Subfunctor (stdSimplex.{u}.obj (SemiSimplexCategory.mk n)) where
+  obj _ f := ∃ j, j ∉ Set.range (ULift.down f).hom.toOrderHom
+  map _ _ := by
+    rintro ⟨j, hj⟩
+    exact ⟨j, fun ⟨y, hy⟩ => hj ⟨_, hy⟩⟩
+
+/-- The horn `Λ^n_k ⊆ Δ_n`: the maps missing some value other than `k` (H:2838). -/
+def horn (n : ℕ) (k : Fin (n + 1)) : Subfunctor (stdSimplex.{u}.obj (SemiSimplexCategory.mk n)) where
+  obj _ f := ∃ j, j ≠ k ∧ j ∉ Set.range (ULift.down f).hom.toOrderHom
+  map _ _ := by
+    rintro ⟨j, hjk, hj⟩
+    exact ⟨j, hjk, fun ⟨y, hy⟩ => hj ⟨_, hy⟩⟩
+
+/-- The Kan condition: every horn `Λ^{n+1}_k ⟶ X` extends to `Δ_{n+1}`. -/
+def IsKan (X : SemiSSet.{u}) : Prop :=
+  ∀ (n : ℕ) (k : Fin (n + 2)) (h : (horn.{u} (n + 1) k).toFunctor ⟶ X),
+    ∃ σ : stdSimplex.obj (SemiSimplexCategory.mk (n + 1)) ⟶ X, (horn (n + 1) k).ι ≫ σ = h
+
+/-- The topological simplices on the semi-simplicial category. -/
+noncomputable abbrev toTop : SemiSimplexCategory ⥤ TopCat.{u} :=
+  SemiSimplexCategory.incl ⋙ SimplexCategory.toTop
+
+/-- The geometric realization `‖X‖` of semi-simplicial sets (the "fat" realization), the left Kan
+extension of the topological simplices along the Yoneda embedding (H:2882). -/
+noncomputable def realization : SemiSSet.{u} ⥤ TopCat.{u} :=
+  stdSimplex.{u}.leftKanExtension toTop
+
+end SemiSSet
+
+/-- An algebraic semi-simplicial Kan complex: a semi-simplicial set with a chosen filler for every
+horn `Λ^{n+1}_k ⟶ X` (H:2874–2876). These form the completion of `C^Δ`. -/
+structure AlgKan where
+  /-- the underlying semi-simplicial set -/
+  X : SemiSSet.{u}
+  /-- the chosen horn fillers -/
+  fill : ∀ (n : ℕ) (k : Fin (n + 2)), ((SemiSSet.horn.{u} (n + 1) k).toFunctor ⟶ X) →
+    (SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk (n + 1)) ⟶ X)
+  fill_spec : ∀ n k h, (SemiSSet.horn (n + 1) k).ι ≫ fill n k h = h
+
+namespace AlgKan
+
+/-- Morphisms of algebraic Kan complexes: maps of semi-simplicial sets preserving the fillers. -/
+@[ext]
+structure Hom (X Y : AlgKan.{u}) where
+  /-- the underlying map -/
+  hom : X.X ⟶ Y.X
+  fill_hom : ∀ n k h, X.fill n k h ≫ hom = Y.fill n k (h ≫ hom)
+
+instance : Category.{u} AlgKan.{u} where
+  Hom := Hom
+  id X := ⟨𝟙 _, by simp⟩
+  comp f g := ⟨f.hom ≫ g.hom, fun n k h => by
+    rw [← Category.assoc, f.fill_hom, g.fill_hom, Category.assoc]⟩
+
+/-- The underlying semi-simplicial set. -/
+@[simps]
+def forget : AlgKan.{u} ⥤ SemiSSet.{u} where
+  obj X := X.X
+  map f := f.hom
+
+/-- `η : S ⟶ X` exhibits `X` as the algebraic Kan complex freely generated by `S`. -/
+def IsFreeOn {S : SemiSSet.{u}} (X : AlgKan.{u}) (η : S ⟶ X.X) : Prop :=
+  ∀ (Z : AlgKan.{u}) (z : S ⟶ Z.X), ∃! g : X ⟶ Z, η ≫ g.hom = z
+
+/-- `j : X ⟶ Y` is a free cell attachment: `Y = X ⊔_{∂Δ_n} Δ_n` in algebraic Kan complexes, i.e. a
+pushout of the free map on `∂Δ_n ↪ Δ_n` (H:2884). -/
+def IsCellAttachment {X Y : AlgKan.{u}} (j : X ⟶ Y) : Prop :=
+  ∃ (n : ℕ) (a : (SemiSSet.boundary.{u} n).toFunctor ⟶ X.X)
+    (y : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk n) ⟶ Y.X),
+    (SemiSSet.boundary n).ι ≫ y = a ≫ j.hom ∧
+    ∀ (Z : AlgKan.{u}) (g : X ⟶ Z) (z : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk n) ⟶ Z.X),
+      (SemiSSet.boundary n).ι ≫ z = a ≫ g.hom → ∃! g' : Y ⟶ Z, j ≫ g' = g ∧ y ≫ g'.hom = z
+
+/-- Finitely cellular algebraic Kan complexes: obtained from the initial object by finitely many
+free cell attachments (H:2871). -/
+inductive IsFinitelyCellular : AlgKan.{u} → Prop
+  | initial (X : AlgKan.{u}) : Nonempty (IsInitial X) → IsFinitelyCellular X
+  | attach {X Y : AlgKan.{u}} (j : X ⟶ Y) : IsFinitelyCellular X → IsCellAttachment j →
+      IsFinitelyCellular Y
+
+/-- Cellular maps: finite composites of isomorphisms and free cell attachments. -/
+def cellularMaps : MorphismProperty AlgKan.{u} :=
+  ((show MorphismProperty AlgKan.{u} from fun _ _ j => IsCellAttachment j) ⊔
+    MorphismProperty.isomorphisms AlgKan.{u}).multiplicativeClosure
+
+end AlgKan
+
+/-- The cylinder category `C^Δ` of finitely cellular algebraic semi-simplicial Kan complexes
+(H:2868, Def 5.2.4). -/
+abbrev CDelta : Type (u + 1) :=
+  ObjectProperty.FullSubcategory AlgKan.IsFinitelyCellular.{u}
+
+namespace CDelta
+
+/-- Cofibrations of `C^Δ`: finite composites of free cell attachments (H:2845). -/
+instance : CategoryWithCofibrations CDelta.{u} :=
+  ⟨AlgKan.cellularMaps.inverseImage (ObjectProperty.ι _)⟩
+
+/-- The maps of `C^Δ` between free simplices induced by face inclusions `[m] ↪ [n]`; they are
+forced to be weak equivalences (H:2819). -/
+def simplexMaps : MorphismProperty CDelta.{u} := fun X Y f =>
+  ∃ (m n : ℕ) (σ : SemiSimplexCategory.mk m ⟶ SemiSimplexCategory.mk n)
+    (ηX : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk m) ⟶ X.obj.X)
+    (ηY : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk n) ⟶ Y.obj.X),
+    X.obj.IsFreeOn ηX ∧ Y.obj.IsFreeOn ηY ∧ ηX ≫ f.hom.hom = SemiSSet.stdSimplex.map σ ≫ ηY
+
+/-- Weak equivalences of `C^Δ`: the smallest class containing `simplexMaps` and satisfying the
+axioms of pre-cylinder categories (isomorphisms, composition, 2-out-of-6, gluing), H:2819–2821 and
+H:2868. -/
+instance : CategoryWithWeakEquivalences CDelta.{u} :=
+  ⟨sInf {W | IsWeakEquivalenceClass CDelta.{u} (cofibrations CDelta.{u}) W ∧ simplexMaps ≤ W}⟩
+
+end CDelta
+
+/-- A standard realization of `C^Δ` (H:2880, Def 5.2.5): a cellular realization `R` sending every
+free simplex on `Δ_n` to the topological `n`-simplex, and the maps between free simplices induced by
+a face inclusion `σ` to the corresponding affine face map. -/
+structure IsStandardRealization (R : CDelta.{u} ⥤ TopCat.{u}) : Prop where
+  isCellularRealization : IsCellularRealization R
+  simplex : ∃ e : ∀ (n : ℕ) (X : CDelta.{u})
+      (η : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk n) ⟶ X.obj.X), X.obj.IsFreeOn η →
+        (R.obj X ≅ SemiSSet.toTop.obj (SemiSimplexCategory.mk n)),
+    ∀ (m n : ℕ) (Y X : CDelta.{u})
+      (η' : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk m) ⟶ Y.obj.X)
+      (η : SemiSSet.stdSimplex.obj (SemiSimplexCategory.mk n) ⟶ X.obj.X)
+      (hY : Y.obj.IsFreeOn η') (hX : X.obj.IsFreeOn η)
+      (σ : SemiSimplexCategory.mk m ⟶ SemiSimplexCategory.mk n) (f : Y ⟶ X),
+      η' ≫ f.hom.hom = SemiSSet.stdSimplex.map σ ≫ η →
+        R.map f ≫ (e n X η hX).hom = (e m Y η' hY).hom ≫ SemiSSet.toTop.map σ
+
+end HomotopyHypothesis.Henry
